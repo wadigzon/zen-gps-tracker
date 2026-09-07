@@ -8,7 +8,7 @@ import '../../view_models/history_view_model.dart';
 import '../../view_models/settings_view_model.dart';
 import 'trip_detail_screen.dart';
 
-/// Screen listing all past recorded trips with search/deletion and KML/GPX export.
+/// Screen listing recorded & imported trips with TabBar navigation & file import.
 class TripHistoryScreen extends StatelessWidget {
   const TripHistoryScreen({super.key});
 
@@ -18,41 +18,107 @@ class TripHistoryScreen extends StatelessWidget {
     final settingsVM = context.watch<SettingsViewModel>();
     final isMetric = settingsVM.isMetric;
 
-    return Scaffold(
-      backgroundColor: ZenColors.background,
-      appBar: AppBar(
-        backgroundColor: ZenColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: ZenColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Trip History & Exports',
-          style: TextStyle(
-            color: ZenColors.textPrimary,
-            fontWeight: FontWeight.bold,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: ZenColors.background,
+        appBar: AppBar(
+          backgroundColor: ZenColors.surface,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: ZenColors.textPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Trips & Exports',
+            style: TextStyle(
+              color: ZenColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          actions: [
+            // Import File Button
+            TextButton.icon(
+              onPressed: () async {
+                final imported = await historyVM.importFileFromDevice();
+                if (imported != null && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Imported "${imported.title}"!'),
+                      backgroundColor: ZenColors.emeraldPrimary,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.file_upload_outlined, color: ZenColors.cyanAccent, size: 18),
+              label: const Text(
+                'IMPORT',
+                style: TextStyle(color: ZenColors.cyanAccent, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+          bottom: TabBar(
+            indicatorColor: ZenColors.emeraldPrimary,
+            labelColor: ZenColors.emeraldLight,
+            unselectedLabelColor: ZenColors.textSecondary,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            tabs: [
+              Tab(text: 'RECORDED (${historyVM.recordedTrips.length})'),
+              Tab(text: 'IMPORTED (${historyVM.importedTrips.length})'),
+            ],
           ),
         ),
+        body: historyVM.isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: ZenColors.emeraldPrimary),
+              )
+            : TabBarView(
+                children: [
+                  // Tab 1: Recorded Trips
+                  _buildTripList(
+                    context: context,
+                    historyVM: historyVM,
+                    trips: historyVM.recordedTrips,
+                    isMetric: isMetric,
+                    isImportedBucket: false,
+                  ),
+
+                  // Tab 2: Imported Trips
+                  _buildTripList(
+                    context: context,
+                    historyVM: historyVM,
+                    trips: historyVM.importedTrips,
+                    isMetric: isMetric,
+                    isImportedBucket: true,
+                  ),
+                ],
+              ),
       ),
-      body: historyVM.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: ZenColors.emeraldPrimary),
-            )
-          : historyVM.trips.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: historyVM.trips.length,
-                  itemBuilder: (context, index) {
-                    final trip = historyVM.trips[index];
-                    return _buildTripCard(context, historyVM, trip, isMetric);
-                  },
-                ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildTripList({
+    required BuildContext context,
+    required HistoryViewModel historyVM,
+    required List<Trip> trips,
+    required bool isMetric,
+    required bool isImportedBucket,
+  }) {
+    if (trips.isEmpty) {
+      return _buildEmptyState(isImportedBucket, historyVM);
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: trips.length,
+      itemBuilder: (context, index) {
+        final trip = trips[index];
+        return _buildTripCard(context, historyVM, trip, isMetric, isImportedBucket);
+      },
+    );
+  }
+
+  Widget _buildEmptyState(bool isImportedBucket, HistoryViewModel historyVM) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -60,29 +126,44 @@ class TripHistoryScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: ZenColors.surfaceLight.withOpacity(0.3),
+              color: ZenColors.surfaceLight.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.hiking_outlined,
+            child: Icon(
+              isImportedBucket ? Icons.file_download_outlined : Icons.hiking_outlined,
               size: 56,
               color: ZenColors.textSecondary,
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No Recorded Trips Yet',
-            style: TextStyle(
+          Text(
+            isImportedBucket ? 'No Imported Trips Yet' : 'No Recorded Trips Yet',
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: ZenColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Start a new trip to record your outdoor journey.',
-            style: TextStyle(fontSize: 13, color: ZenColors.textSecondary),
+          Text(
+            isImportedBucket
+                ? 'Import standard .kml or .gpx files from your device.'
+                : 'Start a new trip to record your outdoor journey.',
+            style: const TextStyle(fontSize: 13, color: ZenColors.textSecondary),
           ),
+          if (isImportedBucket) ...[
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: historyVM.importFileFromDevice,
+              icon: const Icon(Icons.file_upload_outlined, size: 18),
+              label: const Text('IMPORT .KML OR .GPX FILE'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ZenColors.cyanAccent,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -93,6 +174,7 @@ class TripHistoryScreen extends StatelessWidget {
     HistoryViewModel historyVM,
     Trip trip,
     bool isMetric,
+    bool isImportedBucket,
   ) {
     final dateFormat = DateFormat('MMM d, yyyy • h:mm a');
     final formattedDate = dateFormat.format(trip.startTime);
@@ -125,15 +207,39 @@ class TripHistoryScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    trip.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: ZenColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    children: [
+                      if (isImportedBucket) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: ZenColors.cyanAccent.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'IMPORTED',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: ZenColors.cyanAccent,
+                            ),
+                          ),
+                        ),
+                      ],
+                      Expanded(
+                        child: Text(
+                          trip.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: ZenColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 // Export KML Badge Button
@@ -146,7 +252,7 @@ class TripHistoryScreen extends StatelessWidget {
                     } else if (val == 'gpx') {
                       historyVM.exportGpx(trip);
                     } else if (val == 'delete') {
-                      historyVM.deleteTrip(trip.id);
+                      historyVM.deleteTrip(trip.id, isImported: isImportedBucket);
                     }
                   },
                   itemBuilder: (context) => const [
