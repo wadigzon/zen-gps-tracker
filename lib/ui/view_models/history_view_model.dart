@@ -52,6 +52,15 @@ class HistoryViewModel extends ChangeNotifier {
     await loadTrips();
   }
 
+  Future<void> clearAllTrips({required bool isImported}) async {
+    if (isImported) {
+      await _storageService.clearAllImportedTrips();
+    } else {
+      await _storageService.clearAllTrips();
+    }
+    await loadTrips();
+  }
+
   /// Pick & import a .kml or .gpx file from device storage into [Imported Trips] bucket
   Future<Trip?> importFileFromDevice() async {
     try {

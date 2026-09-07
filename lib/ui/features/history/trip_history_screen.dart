@@ -108,13 +108,51 @@ class TripHistoryScreen extends StatelessWidget {
       return _buildEmptyState(isImportedBucket, historyVM);
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: trips.length,
-      itemBuilder: (context, index) {
-        final trip = trips[index];
-        return _buildTripCard(context, historyVM, trip, isMetric, isImportedBucket);
-      },
+    final bucketLabel = isImportedBucket ? 'IMPORTED TRIPS' : 'RECORDED TRIPS';
+
+    return Column(
+      children: [
+        // Bucket Header with Clear All Button
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${trips.length} $bucketLabel',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                  color: ZenColors.textSecondary,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => _confirmClearAll(context, historyVM, isImportedBucket),
+                icon: const Icon(Icons.delete_sweep_outlined, color: ZenColors.roseStop, size: 16),
+                label: const Text(
+                  'CLEAR ALL',
+                  style: TextStyle(
+                    color: ZenColors.roseStop,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: trips.length,
+            itemBuilder: (context, index) {
+              final trip = trips[index];
+              return _buildTripCard(context, historyVM, trip, isMetric, isImportedBucket);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -242,17 +280,16 @@ class TripHistoryScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Export KML Badge Button
                 PopupMenuButton<String>(
                   color: ZenColors.surface,
-                  icon: const Icon(Icons.share_outlined, color: ZenColors.emeraldLight, size: 20),
+                  icon: const Icon(Icons.more_vert, color: ZenColors.emeraldLight, size: 20),
                   onSelected: (val) {
                     if (val == 'kml') {
                       historyVM.exportKml(trip);
                     } else if (val == 'gpx') {
                       historyVM.exportGpx(trip);
                     } else if (val == 'delete') {
-                      historyVM.deleteTrip(trip.id, isImported: isImportedBucket);
+                      _confirmDeleteTrip(context, historyVM, trip, isImportedBucket);
                     }
                   },
                   itemBuilder: (context) => const [
@@ -354,5 +391,101 @@ class TripHistoryScreen extends StatelessWidget {
       return '${hours}h ${minutes}m';
     }
     return '${minutes}m ${seconds}s';
+  }
+
+  void _confirmDeleteTrip(
+    BuildContext context,
+    HistoryViewModel historyVM,
+    Trip trip,
+    bool isImported,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ZenColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Delete Trip',
+          style: TextStyle(color: ZenColors.textPrimary, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${trip.title}"?',
+          style: const TextStyle(color: ZenColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL', style: TextStyle(color: ZenColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              historyVM.deleteTrip(trip.id, isImported: isImported);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Deleted "${trip.title}"'),
+                  backgroundColor: ZenColors.roseStop,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ZenColors.roseStop,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmClearAll(
+    BuildContext context,
+    HistoryViewModel historyVM,
+    bool isImported,
+  ) {
+    final bucketLabel = isImported ? 'Imported Trips' : 'Recorded Trips';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ZenColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Clear All $bucketLabel',
+          style: const TextStyle(color: ZenColors.textPrimary, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'This will permanently delete all $bucketLabel from this list. This action cannot be undone.',
+          style: const TextStyle(color: ZenColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL', style: TextStyle(color: ZenColors.textSecondary)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              historyVM.clearAllTrips(isImported: isImported);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Cleared all $bucketLabel'),
+                  backgroundColor: ZenColors.roseStop,
+                ),
+              );
+            },
+            icon: const Icon(Icons.delete_forever, size: 18),
+            label: const Text('CLEAR ALL'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ZenColors.roseStop,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

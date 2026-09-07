@@ -52,6 +52,12 @@ class StorageService {
     await prefs.setString(_tripsStorageKey, jsonEncode(jsonList));
   }
 
+  /// Clear all recorded trips
+  Future<void> clearAllTrips() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tripsStorageKey);
+  }
+
   // --- IMPORTED TRIPS BUCKET ---
 
   /// Save trip to dedicated [Imported Trips] storage bucket
@@ -91,6 +97,12 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = trips.map((t) => t.toJson()).toList();
     await prefs.setString(_importedTripsStorageKey, jsonEncode(jsonList));
+  }
+
+  /// Clear all imported trips
+  Future<void> clearAllImportedTrips() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_importedTripsStorageKey);
   }
 
   // --- FILE EXPORT & SHARING ---
