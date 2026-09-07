@@ -195,16 +195,42 @@ class _MapWidgetState extends State<MapWidget> {
           ],
         ),
 
-        // Auto-center camera button
+        // Prominent Re-center button (shows whenever user drags map off-center)
         Positioned(
+          top: MediaQuery.of(context).padding.top + 70,
           right: 16,
-          bottom: 24,
-          child: FloatingActionButton.small(
-            heroTag: 'recenter_map_btn',
-            backgroundColor: _followUser ? ZenColors.emeraldPrimary : ZenColors.surface,
-            foregroundColor: Colors.white,
-            onPressed: _centerOnCurrentPosition,
-            child: Icon(_followUser ? Icons.my_location : Icons.location_searching),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 250),
+            opacity: !_followUser ? 1.0 : 0.85,
+            child: ElevatedButton.icon(
+              onPressed: _centerOnCurrentPosition,
+              icon: Icon(
+                _followUser ? Icons.my_location : Icons.location_searching,
+                size: 18,
+                color: _followUser ? ZenColors.emeraldPrimary : ZenColors.cyanAccent,
+              ),
+              label: Text(
+                _followUser ? 'CENTERED' : 'RE-CENTER MAP',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                  color: _followUser ? ZenColors.textPrimary : ZenColors.cyanAccent,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ZenColors.glassBackground,
+                elevation: 6,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                    color: _followUser ? ZenColors.glassBorder : ZenColors.cyanAccent.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ],
