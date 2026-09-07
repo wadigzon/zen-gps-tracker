@@ -72,5 +72,9 @@
 	<string>Zen GPS Tracker requires background location permission to accurately trace your route when the app is in the background.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Zen GPS Tracker requires background location permission to trace your route when the app is in the background.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 </dict>
 </plist>

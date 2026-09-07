@@ -84,6 +84,12 @@ class LocationService {
           distanceFilter: 1, // Report every 1 meter movement
           intervalDuration: const Duration(seconds: 1), // Poll every 1 second
           forceLocationManager: true, // Force raw hardware GPS provider
+          foregroundNotificationConfig: const ForegroundNotificationConfig(
+            notificationTitle: "Zen GPS Tracker Active",
+            notificationText: "Recording trip in background...",
+            notificationIcon: AndroidResource(name: 'ic_launcher', defType: 'mipmap'),
+            enableWakeLock: true,
+          ),
         );
       } else if (!kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.iOS ||
