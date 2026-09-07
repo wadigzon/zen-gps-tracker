@@ -59,6 +59,22 @@ class _MapWidgetState extends State<MapWidget> {
     }
   }
 
+  void _zoomIn() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(
+      _mapController.camera.center,
+      (currentZoom + 1.0).clamp(1.0, 19.0),
+    );
+  }
+
+  void _zoomOut() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(
+      _mapController.camera.center,
+      (currentZoom - 1.0).clamp(1.0, 19.0),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Default initial location: Yosemite Valley or current position
@@ -195,42 +211,92 @@ class _MapWidgetState extends State<MapWidget> {
           ],
         ),
 
-        // Prominent Re-center button (shows whenever user drags map off-center)
+        // Google Maps Style Map Control Cluster (Location & Zoom + / -)
         Positioned(
           top: MediaQuery.of(context).padding.top + 70,
-          right: 16,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 250),
-            opacity: !_followUser ? 1.0 : 0.85,
-            child: ElevatedButton.icon(
-              onPressed: _centerOnCurrentPosition,
-              icon: Icon(
-                _followUser ? Icons.my_location : Icons.location_searching,
-                size: 18,
-                color: _followUser ? ZenColors.emeraldPrimary : ZenColors.cyanAccent,
-              ),
-              label: Text(
-                _followUser ? 'CENTERED' : 'RE-CENTER MAP',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                  color: _followUser ? ZenColors.textPrimary : ZenColors.cyanAccent,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ZenColors.glassBackground,
-                elevation: 6,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(
-                    color: _followUser ? ZenColors.glassBorder : ZenColors.cyanAccent.withValues(alpha: 0.6),
-                    width: 1.5,
+          right: 14,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Re-Center / Target Location Button (Google Maps Style - No Text Label)
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                elevation: 5,
+                shadowColor: Colors.black45,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _centerOnCurrentPosition,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      _followUser ? Icons.gps_fixed : Icons.gps_not_fixed,
+                      size: 22,
+                      color: _followUser ? ZenColors.emeraldPrimary : Colors.black87,
+                    ),
                   ),
                 ),
               ),
-            ),
+
+              const SizedBox(height: 10),
+
+              // Google Maps Style Vertical Zoom Controls (+ / -)
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                elevation: 5,
+                shadowColor: Colors.black45,
+                child: Container(
+                  width: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Zoom In (+)
+                      InkWell(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                        onTap: _zoomIn,
+                        child: const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: Icon(
+                            Icons.add,
+                            size: 24,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+
+                      // Subtle Horizontal Divider
+                      Container(
+                        height: 1,
+                        width: 26,
+                        color: Colors.grey.shade300,
+                      ),
+
+                      // Zoom Out (-)
+                      InkWell(
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                        onTap: _zoomOut,
+                        child: const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: Icon(
+                            Icons.remove,
+                            size: 24,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
