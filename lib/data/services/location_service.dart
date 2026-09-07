@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../domain/models/gps_point.dart';
 
@@ -63,7 +64,7 @@ class LocationService {
     }
   }
 
-  /// Starts location stream (either real GPS or simulated stream)
+  /// Starts location stream with high frequency 1-second continuous GPS polling
   void startLocationStream({
     required void Function(GpsPoint point) onPointReceived,
     required void Function(Object error) onError,
@@ -75,10 +76,30 @@ class LocationService {
     if (simulate) {
       _startSimulatedStream(onPointReceived);
     } else {
-      const locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 3, // Only report if moved > 3 meters
-      );
+      late LocationSettings locationSettings;
+
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        locationSettings = AndroidSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          distanceFilter: 1, // Report every 1 meter movement
+          intervalDuration: const Duration(seconds: 1), // Poll every 1 second
+          forceLocationManager: true, // Force raw hardware GPS provider
+        );
+      } else if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.iOS ||
+              defaultTargetPlatform == TargetPlatform.macOS)) {
+        locationSettings = AppleSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          activityType: ActivityType.fitness,
+          distanceFilter: 1,
+          pauseLocationUpdatesAutomatically: false,
+        );
+      } else {
+        locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          distanceFilter: 1,
+        );
+      }
 
       _positionSubscription = Geolocator.getPositionStream(
         locationSettings: locationSettings,
